@@ -5,6 +5,11 @@ import subprocess
 from typing import List, Union
 
 
+RED_TEXT_CODE = '\033[31m'
+GREEN_TEXT_CODE = '\033[32m'
+RESET_TEXT_CODE = '\033[0m'
+
+
 @dataclass
 class Variable:
     data_type: str
