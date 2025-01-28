@@ -24,6 +24,28 @@ class Function:
     parameters: List['Variable'] # using '' for forward reference
 
 
+@dataclass
+class If:
+    condition: str
+    body: List[str]
+
+@dataclass
+class ElseIf:
+    condition: str
+    body: List[str]
+
+@dataclass
+class Else:
+    body: List[str]
+
+# First is always If
+# Next can be anywhere from 0 to `n` ElseIf
+# Last there can be either 0 or 1 Else
+# @dataclass
+# class Conditions:
+#     pass
+
+
 # define function call as Variable = Function
 # for example: int total = sum(5, 10);
 # Variable(data_type='int', name='total', value=Function(return_type='int', ))
@@ -169,6 +191,47 @@ def find_functions(filename):
     return functions
 
 
+import re
+
+def split_c_code(code):
+    statements = []
+    current_statement = ''
+    brace_count = 0
+    length = len(code)
+    found_if = False
+    found_else = False
+
+    for i in range(length):
+        char = code[i]
+        current_statement += char
+
+        if char == '{':
+            brace_count += 1
+        elif char == '}':
+            brace_count -= 1
+        
+        # Probably doesn't currently work for nested if else statements
+        if re.match(r'\bif\b', code[i:]): # detect 'if' keyword
+            found_if = True
+        elif re.match(r'\belse\b', code[i:]): # detect 'else' keyword
+            found_else = True
+        
+        # Check if end of if statement or else statement
+        if char == '}' and brace_count == 0:
+            statements.append(current_statement.strip())
+            current_statement = ''
+            if found_if:
+                found_if = False
+            if found_else:
+                found_else = False
+        elif char == ';' and brace_count == 0:
+            statements.append(current_statement.strip())
+            current_statement = ''
+
+
+    return statements
+
+
 ######################### GET FUNCTION CONTENTS #########################
 def get_function_contents(content, function):
     # Normalize spaces: replace multiple spaces with a single space
@@ -218,6 +281,12 @@ def get_function_contents(content, function):
 
     if not found_function:
         return None
+
+    print('Function body:', function_body)
+    statements = split_c_code(function_body)
+    left_idx = statements[3].find('{')
+    right_idx = statements[3].find('}')
+    print(statements[3][left_idx+1:right_idx])
 
     # Extract statements
     pattern = re.compile(r'[^;]+;')
