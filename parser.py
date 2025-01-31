@@ -212,58 +212,6 @@ def get_function_contents(content, function):
     return [statement.strip() for statement in statements]
 
 
-def get_function_contents_v2(content, function):
-    # Normalize spaces: replace multiple spaces with a single space
-    content = re.sub(r'\s+', ' ', content.strip())
-
-    # Extract details from the dictionary
-    return_type = function.return_type
-    func_name = function.function_name
-    params = function.parameters
-
-    # Build the parameter string
-    param_str = ', '.join(f"{param.data_type} {param.name}" for param in params)
-    
-    # Construct the function signature regex dynamically
-    func_pattern = re.compile(rf'\s*{return_type}\s+{func_name}\s*\({param_str}\)\s*(\{{|\s*\{{)')
-
-    found_function = False
-    inside_function = False
-    brace_count = 0
-    function_body = ''
-
-    # Search for the function match within the entire content
-    match = func_pattern.search(content)
-    
-    if match:
-        found_function = True
-        inside_function = True
-        brace_count = 1  # We've found the opening brace
-
-        # Now process the content after the function signature
-        for i in range(match.end(), len(content)):
-            char = content[i]
-
-            # Track braces to find the body of the function
-            if char == '{':
-                brace_count += 1
-            elif char == '}':
-                brace_count -= 1
-
-            if inside_function and brace_count > 0:
-                function_body += char
-
-            # If we've closed all braces, we've captured the full function
-            if brace_count == 0:
-                inside_function = False
-                break
-
-    if not found_function:
-        return None
-
-    return function_body
-
-
 ######################### EXTRACT FUNCTION VARIABLES #########################
 def extract_function_variables(function_contents):
     pattern = r'^\s*(int|float|char|double|long|short|unsigned|signed|void)\s+([\w*]+)(\s*=\s*([^;]+))?\s*;'
@@ -430,3 +378,59 @@ def parse_c_statements(c_statements):
         parsed_statements.append(statement)
 
     return parsed_statements
+
+
+######################### GET FUNCTION CONTENTS V2 #########################
+def get_function_contents_v2(content, function):
+    # Normalize spaces: replace multiple spaces with a single space
+    content = re.sub(r'\s+', ' ', content.strip())
+
+    # Extract details from the dictionary
+    return_type = function.return_type
+    func_name = function.function_name
+    params = function.parameters
+
+    # Build the parameter string
+    param_str = ', '.join(f"{param.data_type} {param.name}" for param in params)
+    
+    # Construct the function signature regex dynamically
+    func_pattern = re.compile(rf'\s*{return_type}\s+{func_name}\s*\({param_str}\)\s*(\{{|\s*\{{)')
+
+    found_function = False
+    inside_function = False
+    brace_count = 0
+    function_body = ''
+
+    # Search for the function match within the entire content
+    match = func_pattern.search(content)
+    
+    if match:
+        found_function = True
+        inside_function = True
+        brace_count = 1  # We've found the opening brace
+
+        # Now process the content after the function signature
+        for i in range(match.end(), len(content)):
+            char = content[i]
+
+            # Track braces to find the body of the function
+            if char == '{':
+                brace_count += 1
+            elif char == '}':
+                brace_count -= 1
+
+            if inside_function and brace_count > 0:
+                function_body += char
+
+            # If we've closed all braces, we've captured the full function
+            if brace_count == 0:
+                inside_function = False
+                break
+
+    if not found_function:
+        return None
+
+    split_statements = split_c_code(function_body)
+    statements = parse_c_statements(split_statements)
+
+    return statements
