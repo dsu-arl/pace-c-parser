@@ -1,27 +1,12 @@
-from dataclasses import dataclass
 from pathlib import Path
 import re
 import subprocess
-from typing import List, Union
+from data_classes import Variable, Function, If, ElseIf, Else
 
 
 RED_TEXT_CODE = '\033[31m'
 GREEN_TEXT_CODE = '\033[32m'
 RESET_TEXT_CODE = '\033[0m'
-
-
-@dataclass
-class Variable:
-    data_type: str
-    name: str
-    value: Union[str, 'Function'] # using '' for forward reference
-
-
-@dataclass
-class Function:
-    return_type: str
-    function_name: str
-    parameters: List['Variable'] # using '' for forward reference
 
 
 # define function call as Variable = Function
@@ -284,3 +269,168 @@ def verify_initial_checks(filename):
 
     return True
 
+
+#################### SPLIT C CODE ####################
+def split_c_code(code):
+    statements = []
+    current_statement = ''
+    brace_count = 0
+
+    for i in range(len(code)):
+        char = code[i]
+        current_statement += char
+
+        if char == '{':
+            brace_count += 1
+        elif char == '}':
+            brace_count -= 1
+        
+        # Check if end of if statement or else statement
+        if (char == '}' and brace_count == 0) or (char == ';' and brace_count == 0):
+            statements.append(current_statement.strip())
+            current_statement = ''
+
+    return statements
+
+
+#################### CHECK VARIABLE ####################
+def check_variable(statement):
+    '''
+    Identifies if the given statement is a variable declaration and parses it if so.
+
+    Args:
+        - statement (str): C code statement
+    
+    Returns:
+        Variable or None: If a match is found, returns Variable. Otherwise, returns None.
+    '''
+    pattern = r'^\s*(int|float|char|double|long|short|unsigned|signed|void)\s+([\w*]+)(\s*=\s*([^;]+))?\s*;'
+    match = re.match(pattern, statement)
+    if match:
+        data_type = match.group(1)
+        var_name = match.group(2)
+        if match.group(3):
+            # Value will be in the format ' = 10' so this removes the = and spaces
+            var_value = match.group(3).split('=')[-1].strip()
+        else:
+            var_value = None
+        return Variable(data_type=data_type, name=var_name, value=var_value)
+
+    return None
+
+
+#################### CHECK CONDITIONAL ####################
+def check_conditional(statement):
+    conditional_regex = re.compile(
+        r"\b(if|else\s+if|else)\s*(?:\(([^)]*)\))?\s*\{([^}]*)\}",
+        re.DOTALL
+    )
+    match = conditional_regex.search(statement)
+    if match:
+        conditional_type = match[1]
+        condition = match[2] if match[2] else None
+        
+        # body will be everything between { and }
+        open_brace_idx = statement.find('{')
+        close_brace_idx = statement.rfind('}')
+        body = statement[open_brace_idx+1:close_brace_idx].strip()
+
+        # figure out how to handle conditionals that don't have curly braces (for if, else if, and else)
+        # for example:
+        '''
+        if (10 < 14)
+            printf("10 is bigger than 14\n");
+        '''
+
+        if conditional_type == 'if':
+            return If(condition, body=[]), body
+        if conditional_type == 'else if':
+            return ElseIf(condition, body=[]), body
+        if conditional_type == 'else':
+            return Else(body=[]), body
+        
+    # Throws an error if you try to return either a tuple or None
+    return '', ''
+
+
+#################### PARSE C STATEMENTS ####################
+def parse_c_statements(c_statements):
+    parsed_statements = []
+
+    for statement in c_statements:
+        # Check if statement is a variable
+        variable = check_variable(statement)
+        # if variable, then value will not be None
+        if variable:
+            parsed_statements.append(variable)
+            continue
+
+        # Check if statement is a condition
+        conditional, body = check_conditional(statement)
+        if conditional != '':
+            body_statements = split_c_code(body)
+            body_statements = parse_c_statements(body_statements)
+            conditional.body = body_statements
+            parsed_statements.append(conditional)
+            continue
+
+        # If not variable or conditional, then function call (treat just as string for now)
+        parsed_statements.append(statement)
+
+    return parsed_statements
+
+
+######################### GET FUNCTION CONTENTS V2 #########################
+def get_function_contents_v2(content, function):
+    # Normalize spaces: replace multiple spaces with a single space
+    content = re.sub(r'\s+', ' ', content.strip())
+
+    # Extract details from the dictionary
+    return_type = function.return_type
+    func_name = function.function_name
+    params = function.parameters
+
+    # Build the parameter string
+    param_str = ', '.join(f"{param.data_type} {param.name}" for param in params)
+    
+    # Construct the function signature regex dynamically
+    func_pattern = re.compile(rf'\s*{return_type}\s+{func_name}\s*\({param_str}\)\s*(\{{|\s*\{{)')
+
+    found_function = False
+    inside_function = False
+    brace_count = 0
+    function_body = ''
+
+    # Search for the function match within the entire content
+    match = func_pattern.search(content)
+    
+    if match:
+        found_function = True
+        inside_function = True
+        brace_count = 1  # We've found the opening brace
+
+        # Now process the content after the function signature
+        for i in range(match.end(), len(content)):
+            char = content[i]
+
+            # Track braces to find the body of the function
+            if char == '{':
+                brace_count += 1
+            elif char == '}':
+                brace_count -= 1
+
+            if inside_function and brace_count > 0:
+                function_body += char
+
+            # If we've closed all braces, we've captured the full function
+            if brace_count == 0:
+                inside_function = False
+                break
+
+    if not found_function:
+        return None
+
+    split_statements = split_c_code(function_body)
+    statements = parse_c_statements(split_statements)
+
+    return statements
