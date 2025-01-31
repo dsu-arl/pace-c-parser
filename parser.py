@@ -1,7 +1,12 @@
 from pathlib import Path
 import re
 import subprocess
-from data_classes import Variable, Function, If, ElseIf, Else
+
+# Allow it to be used with unit tests
+try:
+    from .data_classes import *
+except ImportError:
+    from data_classes import *
 
 
 RED_TEXT_CODE = '\033[31m'
