@@ -6,7 +6,7 @@ from typing import List, Union
 class Variable:
     data_type: str
     name: str
-    value: Union[str, 'Function'] # using '' for forward reference
+    value: Union[str, int, 'Function'] # using '' for forward reference
 
 
 @dataclass
