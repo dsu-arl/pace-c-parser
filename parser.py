@@ -309,7 +309,8 @@ def check_variable(statement):
     Returns:
         Variable or None: If a match is found, returns Variable. Otherwise, returns None.
     '''
-    pattern = r'^\s*(int|float|char|double|long|short|unsigned|signed|void)\s+([\w*]+)(\s*=\s*([^;]+))?\s*;'
+    # pattern = r'^\s*(int|float|char|double|long|short|unsigned|signed|void)\s+([\w*]+)(\s*=\s*([^;]+))?\s*;'
+    pattern = r'^\s*(int|float|char|double|long|short|unsigned|signed|void)?\s*([\w*]+)(\s*=\s*([^;]+))?\s*;'
     match = re.match(pattern, statement)
     if match:
         data_type = match.group(1)
@@ -317,6 +318,10 @@ def check_variable(statement):
         if match.group(3):
             # Value will be in the format ' = 10' so this removes the = and spaces
             var_value = match.group(3).split('=')[-1].strip()
+            try:
+                var_value = int(var_value)
+            except ValueError:
+                pass
         else:
             var_value = None
         return Variable(data_type=data_type, name=var_name, value=var_value)
