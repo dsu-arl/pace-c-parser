@@ -309,7 +309,6 @@ def check_variable(statement):
     Returns:
         Variable or None: If a match is found, returns Variable. Otherwise, returns None.
     '''
-    # pattern = r'^\s*(int|float|char|double|long|short|unsigned|signed|void)\s+([\w*]+)(\s*=\s*([^;]+))?\s*;'
     pattern = r'^\s*(int|float|char|double|long|short|unsigned|signed|void)?\s*([\w*]+)(\s*=\s*([^;]+))?\s*;'
     match = re.match(pattern, statement)
     if match:
