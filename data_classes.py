@@ -8,7 +8,7 @@ class Variable:
     name: str
     value: Union[str, int, 'Function'] # using '' for forward reference
 
-
+# FunctionDeclaration
 @dataclass
 class Function:
     return_type: str
@@ -29,3 +29,8 @@ class ElseIf:
 @dataclass
 class Else:
     body: str
+
+
+@dataclass
+class FunctionDefinition(Function):
+    body: List[Union[Variable, If, ElseIf, Else, str]]

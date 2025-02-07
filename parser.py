@@ -65,23 +65,6 @@ def run_program(c_file, output_file='a.out'):
     return run_process.stdout.decode()
 
 
-######################### EXTRACT LINES #########################
-def extract_lines(filename):
-    try:
-        with open(filename, 'r') as file:
-            lines = file.readlines()
-    except FileNotFoundError:
-        print(f"Error: File '{filename}' not found.")
-        lines = []
-    
-    lines = [line.replace('\n', '') for line in lines]
-    
-    imports = []
-    for line in lines:
-        if '#include' in imports:
-            imports.append(line)
-
-
 ######################### EXTRACT FUNCTION PARAMETERS #########################
 def extract_function_parameters(parameters):
     if parameters == '':
@@ -443,3 +426,51 @@ def get_function_contents_v2(content, function):
     statements = parse_c_statements(split_statements)
 
     return statements
+
+
+def get_headers(file_contents):
+    pattern = r'#include [<"]([^>"]+)[>"]'
+    matches = re.finditer(pattern, file_contents)
+    headers = []
+    for match in matches:
+        headers.append(match.group(0))
+    return headers
+
+
+def extract_function(function_match):
+    if function_match.group(1) == ';':
+        print('Function declaration match:', function_match.group(0))
+        return ''
+    else:
+        print('Function definition match:', function_match.group(0))
+        return ''
+
+
+def classify_function(code):
+    pattern = r'^\s*\w+\s+\w+\s*\(.*\)\s*(\{.*\}|;)$'
+    match = re.match(pattern, code, re.DOTALL)
+    if match:
+        formatted_function = extract_function(match)
+    return 'Not a function'
+
+
+def get_file_contents_v2(filename):
+    try:
+        with open(filename, 'r') as file:
+            content = file.read()
+    except FileNotFoundError:
+        print(f'Error: File {filename} not found')
+        return None
+    
+    file_contents = content.replace('\n', ' ')
+
+    file_lines = get_headers(file_contents)
+    for header in file_lines:
+        file_contents = file_contents.replace(header, '')
+
+    file_lines = split_c_code(file_contents)
+    for line in file_lines:
+        # For each line, check if it's a variable or function
+        print(line, '|', classify_function(line))
+
+    return file_lines
