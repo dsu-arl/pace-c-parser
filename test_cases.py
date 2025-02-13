@@ -1,4 +1,4 @@
-from .data_classes import Variable, If, ElseIf, Else
+from .data_classes import *
 
 
 #################### VARIABLE TEST CASES ####################
@@ -67,3 +67,34 @@ conditionals_test_cases = [
 
 
 ######################### FUNCTION TEST CASES #########################
+function_test_cases = [
+    (
+        'int sum(int a, int b);',
+        Function(
+            return_type='int',
+            function_name='sum',
+            parameters=[
+                Variable(data_type='int', name='a', value=None),
+                Variable(data_type='int', name='b', value=None)
+            ]
+        )
+    ),
+    (
+        '''
+        int subtract(int x, int y) {
+            return x - y;
+        }
+        ''',
+        FunctionDefinition(
+            return_type='int',
+            function_name='subtract',
+            parameters=[
+                Variable(data_type='int', name='x', value=None),
+                Variable(data_type='int', name='y', value=None)
+            ],
+            body=[
+                'return x - y;'
+            ]
+        )
+    )
+]

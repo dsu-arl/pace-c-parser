@@ -454,6 +454,33 @@ def classify_function(code):
     return 'Not a function'
 
 
+def parse_function(code):
+    # function parameter is already confirmed to be a function
+    # determine which type of function it should be, declaration (no body) or definition (body)
+    if '{' in code or '}' in code:
+        # function definition
+        pass
+    elif ';' in code:
+        # function declaration
+        pattern = r'(\w+)\s+(\w+)\s*\(([^)]*)\)\s*;'
+        match = re.match(pattern, code.strip())
+        if not match:
+            return None
+
+        return_type = match.group(1)
+        function_name = match.group(2)
+        parameters = match.group(3).strip().split(',')
+        
+        formatted_params = []
+        for param in parameters:
+            data_type, var_name = param.strip().split(' ')
+            formatted_params.append(Variable(data_type=data_type, name=var_name, value=None))
+
+        return Function(return_type=return_type, function_name=function_name, parameters=formatted_params)
+    else:
+        print('Unknown function type')
+
+
 def get_file_contents_v2(filename):
     try:
         with open(filename, 'r') as file:
@@ -471,6 +498,7 @@ def get_file_contents_v2(filename):
     file_lines = split_c_code(file_contents)
     for line in file_lines:
         # For each line, check if it's a variable or function
-        print(line, '|', classify_function(line))
+        # print(line, '|', classify_function(line))
+        parse_function(line)
 
     return file_lines

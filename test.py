@@ -74,5 +74,4 @@ from parser import *
 
 
 filename = 'example.c'
-file_contents = get_file_contents_v2(filename)
-print(file_contents)
+get_file_contents_v2(filename)
