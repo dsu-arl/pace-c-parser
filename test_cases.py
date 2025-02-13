@@ -82,7 +82,8 @@ function_test_cases = [
     (
         '''
         int subtract(int x, int y) {
-            return x - y;
+            int diff = x - y;
+            return diff;
         }
         ''',
         FunctionDefinition(
@@ -93,7 +94,8 @@ function_test_cases = [
                 Variable(data_type='int', name='y', value=None)
             ],
             body=[
-                'return x - y;'
+                Variable(data_type='int', name='diff', value='x - y'),
+                'return diff;'
             ]
         )
     )

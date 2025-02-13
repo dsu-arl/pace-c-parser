@@ -457,13 +457,39 @@ def classify_function(code):
 def parse_function(code):
     # function parameter is already confirmed to be a function
     # determine which type of function it should be, declaration (no body) or definition (body)
+    code = code.strip().replace('\n', ' ').replace('\t', ' ')
     if '{' in code or '}' in code:
+        print('Function definition:', code)
         # function definition
-        pass
+        pattern = r'^\s*([a-zA-Z_][\w\s\*]+)\s+([a-zA-Z_]\w*)\s*\(([^)]*?)\)\s*\{(.*?)\}'
+        match = re.match(pattern, code)
+        if not match:
+            print('Not a match')
+            return None
+        
+        print('Found a match')
+        return_type = match.group(1)
+        function_name = match.group(2)
+        
+        # Split function parameters into Variable types
+        parameters = match.group(3).strip().split(',')
+        parameters = [param for param in parameters if param] # removes all empty strings
+        for i in range(len(parameters)):
+            print(parameters[i])
+            data_type, var_name = parameters[i].strip().split(' ')
+            parameters[i] = Variable(data_type=data_type, name=var_name, value=None)
+
+        # Split function body string into list of statements and parse into appropriate type
+        statements = split_c_code(match.group(4))
+        function_body = parse_c_statements(statements)
+
+        return FunctionDefinition(return_type=return_type, function_name=function_name, parameters=parameters, body=function_body)
+        
     elif ';' in code:
         # function declaration
+        print('Function declaration:', code)
         pattern = r'(\w+)\s+(\w+)\s*\(([^)]*)\)\s*;'
-        match = re.match(pattern, code.strip())
+        match = re.match(pattern, code)
         if not match:
             return None
 
@@ -477,6 +503,7 @@ def parse_function(code):
             formatted_params.append(Variable(data_type=data_type, name=var_name, value=None))
 
         return Function(return_type=return_type, function_name=function_name, parameters=formatted_params)
+    
     else:
         print('Unknown function type')
 
